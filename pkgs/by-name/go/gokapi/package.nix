@@ -38,6 +38,12 @@ buildGoModule (finalAttrs: {
 
   postInstall = ''
     mv $out/bin/cli-uploader $out/bin/gokapi-cli
+
+    # Used by the NixOS module. The build fails if upstream moves the constant.
+    mkdir -p $out/share/gokapi
+    sed -n 's/^const CurrentConfigVersion = \([0-9]\+\)$/\1/p' \
+      internal/configuration/configupgrade/Upgrade.go > $out/share/gokapi/config-version
+    test -s $out/share/gokapi/config-version
   '';
 
   nativeInstallCheckInputs = [ versionCheckHook ];
