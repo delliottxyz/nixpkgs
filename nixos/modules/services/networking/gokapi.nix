@@ -57,6 +57,12 @@ in
         For full list see <https://gokapi.readthedocs.io/en/latest/advanced.html#environment-variables>.
       '';
     };
+    environmentFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.externalPath;
+      default = null;
+      example = "/run/secrets/gokapi.env";
+      description = "Environment file for secrets. See {manpage}`systemd.exec(5)`.";
+    };
     settings = lib.mkOption {
       type = lib.types.submodule {
         freeformType = settingsFormat.type;
@@ -128,6 +134,7 @@ in
             (if (cfg.settingsFile == null) then "null" else cfg.settingsFile)
           ];
         ExecStart = lib.getExe cfg.package;
+        EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
         RestartSec = 30;
         DynamicUser = true;
         PrivateTmp = true;
