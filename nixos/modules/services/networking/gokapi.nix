@@ -87,14 +87,18 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    services.gokapi.environment = {
+      GOKAPI_LOG_STDOUT = lib.mkDefault "true";
+      # Uploads larger than GOKAPI_MAX_MEMORY_UPLOAD are buffered here; PrivateTmp may be RAM-backed.
+      TMPDIR = lib.mkDefault "%C/gokapi";
+    };
+
     systemd.services.gokapi = {
+      description = "Gokapi file sharing server";
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       environment = lib.mapAttrs (_: value: toString value) cfg.environment;
-      unitConfig = {
-        Description = "gokapi service";
-      };
       serviceConfig = {
         ExecStartPre =
           let
@@ -135,12 +139,47 @@ in
           ];
         ExecStart = lib.getExe cfg.package;
         EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
-        RestartSec = 30;
-        DynamicUser = true;
-        PrivateTmp = true;
+        # Gokapi serves custom CSS, JS and favicon from ./custom.
+        WorkingDirectory = "%S/gokapi";
         StateDirectory = "gokapi";
         CacheDirectory = "gokapi";
         Restart = "on-failure";
+        RestartSec = 30;
+
+        DynamicUser = true;
+        UMask = "0077";
+        CapabilityBoundingSet = "";
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        PrivateTmp = true;
+        PrivateUsers = true;
+        ProtectClock = true;
+        ProtectControlGroups = true;
+        ProtectHome = true;
+        ProtectHostname = true;
+        ProtectKernelLogs = true;
+        ProtectKernelModules = true;
+        ProtectKernelTunables = true;
+        # No ProcSubset = "pid". The status page panics without /proc/stat.
+        ProtectProc = "invisible";
+        ProtectSystem = "strict";
+        # AF_NETLINK: the setup wizard lists interfaces to print its address.
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+          "AF_NETLINK"
+          "AF_UNIX"
+        ];
+        RestrictNamespaces = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        SystemCallArchitectures = "native";
+        SystemCallFilter = [
+          "@system-service"
+          "~@privileged"
+        ];
       };
     };
   };
