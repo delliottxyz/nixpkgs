@@ -211,8 +211,7 @@ in
     systemd.services.gokapi = {
       description = "Gokapi file sharing server";
       wantedBy = [ "multi-user.target" ];
-      wants = [ "network-online.target" ];
-      after = [ "network-online.target" ];
+      after = [ "network.target" ];
       environment = lib.mapAttrs (_: toString) cfg.environment;
       serviceConfig = {
         ExecStartPre = lib.getExe prepare;
